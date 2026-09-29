@@ -2,11 +2,14 @@
 
 | Campo | Descripción |
 |---|---|
-| **Universidad** | Universidad Privada Domingo Savio — Facultad de Ingeniería |
-| **Asignatura** | Tecnología de Base de Datos I — Bloque 3: Migración de un sistema informático a otro SGBD |
-| **Tema** | Proyecto final: migración completa de datos y estructura (MariaDB → PostgreSQL), vistas y respaldo |
-| **Estudiante** | Marco Antonio Kiataque Uchima |
-| **Docente** | Jared Lopez Leaños |
+| **Universidad** | Universidad Privada Domingo Savio |
+| **Facultad** | Facultad de Ingeniería |
+| **Trabajo** | Migración Completa MariaDB → PostgreSQL 18 (Base employees) |
+| **Tipo** | Proyecto Socioformativo |
+| **Materia** | Tecnología de Base de Datos I — Bloque 3: Migración de un sistema informático a otro SGBD |
+| **Estudiante (Nombre y Apellido)** | Marco Antonio Kiataque Uchima |
+| **Docente** | Ing. Jared Lopez Leaños |
+| **Repositorio de entrega** | https://github.com/MarcoKiataque27/tecnologia_de_base_de_datos_1.git |
 | **Ubicación** | Santa Cruz – Bolivia |
 | **Fecha de entrega** | 29 de septiembre de 2026 |
 | **Entorno** | Linux (Mininux / Ubuntu) + Docker Compose — `postgres:18`, `mariadb:11.8.9-ubi9`, pgloader 3.6.10, Adminer, pgAdmin4 |
@@ -851,22 +854,29 @@ Lectura: el TOC de **62 entradas** confirma esquema `employees` (6 tablas + dato
 
 ## 9. Fase 8: script automatizado `ac06.sh`
 
-Para que cualquiera pueda repetir el experimento sin copiar comandos a mano, todo lo anterior se empaqueta en `ac06.sh`: extrae la vista original, recrea las 2 vistas en PostgreSQL, verifica los 6 conteos y genera el `.dump`. Lo que se hace al correr `./ac06.sh | tee migracion.log` es ejecutar esas 4 etapas y guardar la evidencia en `migracion.log`. La salida `SET / CREATE VIEW / CREATE VIEW` más la tabla de conteos es la prueba de que el proceso es automático y auditable.
+Para que cualquiera pueda repetir el experimento sin copiar comandos a mano, todo lo anterior se empaqueta en `ac06.sh` (v2): extrae las 2 vistas originales, las recrea en PostgreSQL, verifica conteos en ambos motores, calcula MD5, verifica huérfanos 6×2, prueba las vistas con datos y genera el `.dump` validado. Lo que se hace al correr `./ac06.sh | tee ~/tecBD1/migracion.log` es ejecutar esas 7 fases y guardar la evidencia en `migracion.log` y en los `.txt` de la carpeta `Informes/`.
 
 El archivo `ac06.sh` (estudiante: Marco Antonio Kiataque Uchima) automatiza vistas + verificación + backup:
 
 ```bash
 #!/bin/bash
 # ==============================================================================
-# Script de Migración y Verificación (MariaDB -> PostgreSQL 18)
+# Script de Migración y Verificación (MariaDB -> PostgreSQL 18) - v2
 # Asignatura: Tecnología de Base de Datos I
 # Estudiante: Marco Antonio Kiataque Uchima
+# Fecha: 29 de septiembre de 2026
+# Uso: ./ac06.sh | tee ~/tecBD1/migracion.log
 # ==============================================================================
+set -euo pipefail
+
+OUT=~/tecBD1
+export PGPASSWORD=123123
 
 echo "=== 1. Extrayendo vistas originales desde MariaDB ==="
-docker exec -it mariadb mariadb -u root -p123456 -D employees -e "SHOW CREATE VIEW current_dept_emp;" > ~/tecBD1/vistas_mariadb.txt
+docker exec mariadb mariadb -u root -p123456 -D employees -e "SHOW CREATE VIEW current_dept_emp;" > "$OUT/vistas_mariadb.txt"
+docker exec mariadb mariadb -u root -p123456 -D employees -e "SHOW CREATE VIEW dept_emp_latest_date;" > "$OUT/vista_latest_mariadb.txt"
 
-echo "=== 2. Recreando vistas en PostgreSQL (Esquema employees) ==="
+echo "=== 2. Recreando vistas en PostgreSQL (esquema employees) ==="
 psql -h 127.0.0.1 -U marco -d pdb_employees -c "
 SET search_path TO employees, public;
 
@@ -879,26 +889,33 @@ WHERE l.to_date = '9999-01-01';
 CREATE OR REPLACE VIEW dept_emp_latest_date AS
 SELECT emp_no, MAX(from_date) AS from_date, MAX(to_date) AS to_date
 FROM dept_emp
-GROUP BY emp_no;
-"
+GROUP BY emp_no;"
 
-echo "=== 3. Verificando conteo de filas en PostgreSQL ==="
+echo "=== 3. Conteos en PostgreSQL y MariaDB ==="
 psql -h 127.0.0.1 -U marco -d pdb_employees -c "
 SELECT 'employees.employees' AS tabla, COUNT(*) FROM employees.employees
-UNION ALL
-SELECT 'employees.departments', COUNT(*) FROM employees.departments
-UNION ALL
-SELECT 'employees.dept_emp', COUNT(*) FROM employees.dept_emp
-UNION ALL
-SELECT 'employees.dept_manager', COUNT(*) FROM employees.dept_manager
-UNION ALL
-SELECT 'employees.salaries', COUNT(*) FROM employees.salaries
-UNION ALL
-SELECT 'employees.titles', COUNT(*) FROM employees.titles;
-"
+UNION ALL SELECT 'employees.departments', COUNT(*) FROM employees.departments
+UNION ALL SELECT 'employees.dept_emp', COUNT(*) FROM employees.dept_emp
+UNION ALL SELECT 'employees.dept_manager', COUNT(*) FROM employees.dept_manager
+UNION ALL SELECT 'employees.salaries', COUNT(*) FROM employees.salaries
+UNION ALL SELECT 'employees.titles', COUNT(*) FROM employees.titles;" > "$OUT/final_conteos_postgresql.txt"
+mariadb -h 127.0.0.1 -u root -p123456 -D employees -e "SELECT 'departments' AS tabla, COUNT(*) AS filas FROM departments UNION ALL SELECT 'dept_emp', COUNT(*) FROM dept_emp UNION ALL SELECT 'dept_manager', COUNT(*) FROM dept_manager UNION ALL SELECT 'employees', COUNT(*) FROM employees UNION ALL SELECT 'salaries', COUNT(*) FROM salaries UNION ALL SELECT 'titles', COUNT(*) FROM titles;" > "$OUT/final_conteos_mariadb.txt"
 
-echo "=== 4. Generando Backup Binario (.dump) ==="
-pg_dump -h 127.0.0.1 -U marco -d pdb_employees -F c -b -v -f ~/tecBD1/pdb_employees_backup.dump
+echo "=== 4. Checksums MD5 en ambos motores ==="
+mariadb -h 127.0.0.1 -u root -p123456 -D employees -e "SET SESSION group_concat_max_len = 1000000; SELECT 'departments' AS tabla, MD5(GROUP_CONCAT(CONCAT_WS('|', dept_no, dept_name) ORDER BY dept_no SEPARATOR ';;')) AS checksum FROM departments UNION ALL SELECT 'dept_manager', MD5(GROUP_CONCAT(CONCAT_WS('|', emp_no, dept_no, from_date, to_date) ORDER BY emp_no, dept_no SEPARATOR ';;')) FROM dept_manager;" > "$OUT/checksums_mariadb.txt"
+psql -h 127.0.0.1 -U marco -d pdb_employees -c "SELECT 'departments' AS tabla, MD5(STRING_AGG(CONCAT_WS('|', dept_no, dept_name), ';;' ORDER BY dept_no)) AS checksum FROM employees.departments UNION ALL SELECT 'dept_manager', MD5(STRING_AGG(CONCAT_WS('|', emp_no::text, dept_no, from_date::text, to_date::text), ';;' ORDER BY emp_no, dept_no)) FROM employees.dept_manager;" > "$OUT/checksums_postgresql.txt"
+
+echo "=== 5. Huerfanos 6 relaciones x 2 motores ==="
+mariadb -h 127.0.0.1 -u root -p123456 -D employees -e "SELECT 'dept_emp -> employees' AS relacion, COUNT(*) AS huerfanos FROM dept_emp d LEFT JOIN employees e ON d.emp_no = e.emp_no WHERE e.emp_no IS NULL UNION ALL SELECT 'dept_emp -> departments', COUNT(*) FROM dept_emp d LEFT JOIN departments p ON d.dept_no = p.dept_no WHERE p.dept_no IS NULL UNION ALL SELECT 'dept_manager -> employees', COUNT(*) FROM dept_manager d LEFT JOIN employees e ON d.emp_no = e.emp_no WHERE e.emp_no IS NULL UNION ALL SELECT 'dept_manager -> departments', COUNT(*) FROM dept_manager d LEFT JOIN departments p ON d.dept_no = p.dept_no WHERE p.dept_no IS NULL UNION ALL SELECT 'salaries -> employees', COUNT(*) FROM salaries s LEFT JOIN employees e ON s.emp_no = e.emp_no WHERE e.emp_no IS NULL UNION ALL SELECT 'titles -> employees', COUNT(*) FROM titles t LEFT JOIN employees e ON t.emp_no = e.emp_no WHERE e.emp_no IS NULL;" > "$OUT/huerfanos_mariadb.txt"
+psql -h 127.0.0.1 -U marco -d pdb_employees -v ON_ERROR_STOP=1 -c "SET max_parallel_workers_per_gather = 0; SET work_mem = '4MB';" -c "SELECT 'dept_emp -> employees' AS relacion, COUNT(*) AS huerfanos FROM employees.dept_emp d LEFT JOIN employees.employees e ON d.emp_no = e.emp_no WHERE e.emp_no IS NULL UNION ALL SELECT 'dept_emp -> departments', COUNT(*) FROM employees.dept_emp d LEFT JOIN employees.departments p ON d.dept_no = p.dept_no WHERE p.dept_no IS NULL UNION ALL SELECT 'dept_manager -> employees', COUNT(*) FROM employees.dept_manager d LEFT JOIN employees.employees e ON d.emp_no = e.emp_no WHERE e.emp_no IS NULL UNION ALL SELECT 'dept_manager -> departments', COUNT(*) FROM employees.dept_manager d LEFT JOIN employees.departments p ON d.dept_no = p.dept_no WHERE p.dept_no IS NULL UNION ALL SELECT 'salaries -> employees', COUNT(*) FROM employees.salaries s LEFT JOIN employees.employees e ON s.emp_no = e.emp_no WHERE e.emp_no IS NULL UNION ALL SELECT 'titles -> employees', COUNT(*) FROM employees.titles t LEFT JOIN employees.employees e ON t.emp_no = e.emp_no WHERE e.emp_no IS NULL;" > "$OUT/huerfanos_postgresql.txt"
+
+echo "=== 6. Prueba de vistas con datos ==="
+psql -h 127.0.0.1 -U marco -d pdb_employees -c "SELECT COUNT(*) AS filas_current FROM employees.current_dept_emp; SELECT * FROM employees.current_dept_emp LIMIT 10;" > "$OUT/prueba_vista_current.txt"
+psql -h 127.0.0.1 -U marco -d pdb_employees -c "SELECT COUNT(*) AS filas_latest FROM employees.dept_emp_latest_date; SELECT * FROM employees.dept_emp_latest_date LIMIT 10;" > "$OUT/prueba_vista_latest.txt"
+
+echo "=== 7. Backup binario y su validacion ==="
+pg_dump -h 127.0.0.1 -U marco -d pdb_employees -F c -b -v -f "$OUT/pdb_employees_backup.dump"
+pg_restore -l "$OUT/pdb_employees_backup.dump" > "$OUT/verificacion_backup.txt"
 
 echo "=== Proceso completado exitosamente ==="
 ```
@@ -977,29 +994,40 @@ Estructura publicada:
 ```text
 tecnologia_de_base_de_datos_1/
 ├── README.md                        # Portada del repo (Act. 5 + proyecto final)
-├── presentacion de proyecto final/
+├── Informes/
+│   ├── README.md                    # Explicación de los informes del proyecto final
 │   ├── Proyecto_Final_Informe.md
 │   ├── Proyecto_Final_Informe.pdf
 │   ├── Proyecto_Final_Informe.docx
-│   ├── docker-compose.yml
-│   ├── migracion.load
-│   ├── ac06.sh
-│   ├── employees_diagrama.png
-│   ├── employees_postgres.sql
-│   └── pdb_employees_backup.dump
+│   ├── final_conteos_mariadb.txt    # Conteos lado MariaDB (Punto 3.2)
+│   ├── prueba_vista_current.txt     # Prueba vista current_dept_emp, 240124 + 10 filas (Punto 2.3)
+│   ├── prueba_vista_latest.txt      # Prueba vista dept_emp_latest_date, 300024 + 10 filas (Punto 2.3)
+│   ├── huerfanos_mariadb.txt        # Huérfanos 6 relaciones, origen (Punto 3.1)
+│   ├── huerfanos_postgresql.txt     # Huérfanos 6 relaciones, destino (Punto 3.1)
+│   ├── checksums_mariadb.txt        # MD5 departments + dept_manager, origen (Punto 3.1)
+│   ├── checksums_postgresql.txt     # MD5 departments + dept_manager, destino (Punto 3.1)
+│   ├── vista_latest_mariadb.txt     # SHOW CREATE VIEW dept_emp_latest_date (Punto 2.1)
+│   └── verificacion_backup.txt      # TOC 62 entradas del backup (respaldo validado)
+├── docker-compose.yml               # Entorno Docker (escenario)
+├── migracion.load                   # Migración con pgloader (Punto 1.2)
+├── ac06.sh                          # Vistas + verificación + backup automatizados
+├── employees_diagrama.png           # Diagrama ER PgModeler (diseño Act. 5)
+├── employees_postgres.sql           # DDL adaptado a PostgreSQL (estructura Act. 5)
+├── pdb_employees_backup.dump        # Backup binario final ~36 MB (backup adjunto)
 └── actividad-5/
+    ├── README.md                    # Explicación de lo realizado en la Actividad 5
     ├── Actividad_5_Informe.md
     ├── Actividad_5_Informe.pdf
     ├── employees_diagrama.png
     └── employees_postgres.sql
 ```
 
-Comandos para publicar:
+Comandos para publicar (repo limpio, sin temporales):
 
 ```bash
 git init
 git remote add origin https://github.com/MarcoKiataque27/tecnologia_de_base_de_datos_1.git
-git add README.md "presentacion de proyecto final" actividad-5
+git add README.md .gitignore docker-compose.yml migracion.load ac06.sh employees_diagrama.png employees_postgres.sql pdb_employees_backup.dump Informes actividad-5
 git commit -m "Entregable final: migracion employees MariaDB a PostgreSQL 18 + Act 5"
 git branch -M main
 git push -u origin main
