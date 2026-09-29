@@ -14,17 +14,18 @@
 | **Fecha de entrega** | 29 de septiembre de 2026 |
 | **Entorno** | Linux (Mininux / Ubuntu) + Docker Compose — `postgres:18`, `mariadb:11.8.9-ubi9`, pgloader 3.6.10, Adminer, pgAdmin4 |
 
-> **Archivos entregables de este proyecto:**
+> **Archivos entregables de este proyecto (repositorio GitHub):**
 >
-> 1. `Proyecto_Final_Informe.md` — este informe en Markdown.
-> 2. `Proyecto_Final_Informe.pdf` — versión en PDF del mismo informe.
-> 3. `docker-compose.yml` — entorno Docker del laboratorio.
-> 4. `migracion.load` — script de migración pgloader.
-> 5. `ac06.sh` — script de vistas, verificación y backup.
-> 6. `employees_diagrama.png` + `employees_postgres.sql` — diseño PgModeler (Actividad 5, base de este proyecto).
-> 7. `pdb_employees_backup.dump` — backup binario final (`pg_dump -F c -b`, ~36 MB).
-> 8. `README.md` — portada del repositorio GitHub.
-> 9. Repositorio GitHub: <https://github.com/MarcoKiataque27/tecnologia_de_base_de_datos_1.git>
+> 1. `Informes/Proyecto_Final_Informe.md` — este informe en Markdown.
+> 2. `Informes/Proyecto_Final_Informe.pdf` — este informe en PDF (exportado del Word de edición).
+> 3. Los 9 `.txt` de evidencia en la raíz (`final_conteos_mariadb.txt`, `prueba_vista_current.txt`, `prueba_vista_latest.txt`, `huerfanos_mariadb.txt`, `huerfanos_postgresql.txt`, `checksums_mariadb.txt`, `checksums_postgresql.txt`, `vista_latest_mariadb.txt`, `verificacion_backup.txt`).
+> 4. `docker-compose.yml` — entorno Docker del laboratorio.
+> 5. `migracion.load` — script de migración pgloader.
+> 6. `ac06.sh` (v2) — script de vistas, verificación y backup.
+> 7. `actividad-5/` — informe, diagrama y DDL de la Actividad 5 (base de este proyecto).
+> 8. `pdb_employees_backup.dump` — backup binario final (`pg_dump -F c -b`, ~36 MB).
+> 9. `README.md` — portada del repositorio GitHub.
+> 10. Repositorio GitHub: <https://github.com/MarcoKiataque27/tecnologia_de_base_de_datos_1.git>
 >
 > Toda la evidencia es salida de comandos en texto plano, sin capturas de pantalla.
 
@@ -36,9 +37,9 @@
 2. [Fase 1: entorno Docker Compose](#2-fase-1-entorno-docker-compose)
 3. [Fase 2: carga de la BD origen en MariaDB](#3-fase-2-carga-de-la-bd-origen-en-mariadb)
 4. [Fase 3: análisis pre-migración](#4-fase-3-análisis-pre-migración)
-5. [Fase 4: migración de datos con pgloader](#5-fase-4-migración-de-datos-con-pgloader)
-6. [Fase 5: verificación de integridad en PostgreSQL](#6-fase-5-verificación-de-integridad-en-postgresql)
-7. [Fase 6: migración de vistas](#7-fase-6-migración-de-vistas)
+5. [Punto 1 — Migración de Tablas: migración de datos con pgloader](#5-punto-1--migración-de-tablas-migración-de-datos-con-pgloader)
+6. [Punto 3 (parte 1) — Verificación de integridad en PostgreSQL](#6-punto-3-parte-1--verificación-de-integridad-en-postgresql)
+7. [Punto 2 — Migración de Vistas](#7-punto-2--migración-de-vistas)
 8. [Fase 7: respaldo y restauración (`pg_dump` / `pg_restore`)](#8-fase-7-respaldo-y-restauración-pg_dump--pg_restore)
 9. [Fase 8: script automatizado `ac06.sh`](#9-fase-8-script-automatizado-ac06sh)
 10. [Incidencias y solución](#10-incidencias-y-solución)
@@ -997,22 +998,19 @@ tecnologia_de_base_de_datos_1/
 ├── Informes/
 │   ├── README.md                    # Explicación de los informes del proyecto final
 │   ├── Proyecto_Final_Informe.md
-│   ├── Proyecto_Final_Informe.pdf
-│   ├── Proyecto_Final_Informe.docx
-│   ├── final_conteos_mariadb.txt    # Conteos lado MariaDB (Punto 3.2)
-│   ├── prueba_vista_current.txt     # Prueba vista current_dept_emp, 240124 + 10 filas (Punto 2.3)
-│   ├── prueba_vista_latest.txt      # Prueba vista dept_emp_latest_date, 300024 + 10 filas (Punto 2.3)
-│   ├── huerfanos_mariadb.txt        # Huérfanos 6 relaciones, origen (Punto 3.1)
-│   ├── huerfanos_postgresql.txt     # Huérfanos 6 relaciones, destino (Punto 3.1)
-│   ├── checksums_mariadb.txt        # MD5 departments + dept_manager, origen (Punto 3.1)
-│   ├── checksums_postgresql.txt     # MD5 departments + dept_manager, destino (Punto 3.1)
-│   ├── vista_latest_mariadb.txt     # SHOW CREATE VIEW dept_emp_latest_date (Punto 2.1)
-│   └── verificacion_backup.txt      # TOC 62 entradas del backup (respaldo validado)
+│   └── Proyecto_Final_Informe.pdf
+├── final_conteos_mariadb.txt        # Conteos lado MariaDB (Punto 3.2)
+├── prueba_vista_current.txt         # Prueba vista current_dept_emp, 240124 + 10 filas (Punto 2.3)
+├── prueba_vista_latest.txt          # Prueba vista dept_emp_latest_date, 300024 + 10 filas (Punto 2.3)
+├── huerfanos_mariadb.txt            # Huérfanos 6 relaciones, origen (Punto 3.1)
+├── huerfanos_postgresql.txt         # Huérfanos 6 relaciones, destino (Punto 3.1)
+├── checksums_mariadb.txt            # MD5 departments + dept_manager, origen (Punto 3.1)
+├── checksums_postgresql.txt         # MD5 departments + dept_manager, destino (Punto 3.1)
+├── vista_latest_mariadb.txt         # SHOW CREATE VIEW dept_emp_latest_date (Punto 2.1)
+├── verificacion_backup.txt          # TOC 62 entradas del backup (respaldo validado)
 ├── docker-compose.yml               # Entorno Docker (escenario)
 ├── migracion.load                   # Migración con pgloader (Punto 1.2)
 ├── ac06.sh                          # Vistas + verificación + backup automatizados
-├── employees_diagrama.png           # Diagrama ER PgModeler (diseño Act. 5)
-├── employees_postgres.sql           # DDL adaptado a PostgreSQL (estructura Act. 5)
 ├── pdb_employees_backup.dump        # Backup binario final ~36 MB (backup adjunto)
 └── actividad-5/
     ├── README.md                    # Explicación de lo realizado en la Actividad 5
@@ -1022,12 +1020,12 @@ tecnologia_de_base_de_datos_1/
     └── employees_postgres.sql
 ```
 
-Comandos para publicar (repo limpio, sin temporales):
+Comandos para publicar (repo limpio, sin temporales ni Word de edición):
 
 ```bash
 git init
 git remote add origin https://github.com/MarcoKiataque27/tecnologia_de_base_de_datos_1.git
-git add README.md .gitignore docker-compose.yml migracion.load ac06.sh employees_diagrama.png employees_postgres.sql pdb_employees_backup.dump Informes actividad-5
+git add README.md .gitignore docker-compose.yml migracion.load ac06.sh pdb_employees_backup.dump final_conteos_mariadb.txt prueba_vista_current.txt prueba_vista_latest.txt huerfanos_mariadb.txt huerfanos_postgresql.txt checksums_mariadb.txt checksums_postgresql.txt vista_latest_mariadb.txt verificacion_backup.txt Informes actividad-5
 git commit -m "Entregable final: migracion employees MariaDB a PostgreSQL 18 + Act 5"
 git branch -M main
 git push -u origin main

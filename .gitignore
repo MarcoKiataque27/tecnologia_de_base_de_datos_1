@@ -14,3 +14,6 @@ temp_employees.dump
 /Proyecto_Final_Informe.docx
 /employees_diagrama.png
 /employees_postgres.sql
+# Word de edición (solo herramienta para exportar el PDF, no entregable)
+Informes/*.docx
+presentacion de proyecto final/*.docx
