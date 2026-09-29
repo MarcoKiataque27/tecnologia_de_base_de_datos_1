@@ -30,6 +30,92 @@ El diagrama muestra las 6 relaciones 1:N: `employees → dept_emp`, `departments
 | `pdb_employees_backup.dump` | Backup CUSTOM gzip ~36 MB: esquema `employees` (datos) + `public` (DDL Act5), 6 tablas, 2 vistas, PK/FK | Backup adjunto |
 | `actividad-5/` | Todo lo de la Act5 con su propio README | Contexto y base del proyecto |
 
+## Entorno utilizado
+
+| Parámetro | MariaDB (origen) | PostgreSQL (destino) |
+|---|---|---|
+| Versión | 11.8.9 (`mariadb:11.8.9-ubi9`) | 18 (`postgres:18`, pg_dump 18.6) |
+| Host | 127.0.0.1 | 127.0.0.1 |
+| Puerto | 3306 | 5432 |
+| Usuario | `marco` (root `123456` para admin) | `marco` |
+| Base de datos | `employees` | `pdb_employees` |
+| Esquema con datos | — | `employees` |
+
+## Resultados principales
+
+### Conteo de tablas
+
+| Tabla | MariaDB | PostgreSQL | Resultado |
+|---|---:|---:|---|
+| departments | 9 | 9 | Coincide |
+| dept_emp | 331603 | 331603 | Coincide |
+| dept_manager | 24 | 24 | Coincide |
+| employees | 300024 | 300024 | Coincide |
+| salaries | 2844047 | 2844047 | Coincide |
+| titles | 443308 | 443308 | Coincide |
+| **Total** | **3919015** | **3919015** | **Diferencia: 0** |
+
+### Conteo de vistas
+
+| Vista | MariaDB | PostgreSQL | Resultado |
+|---|---:|---:|---|
+| dept_emp_latest_date | 300024 | 300024 | Coincide |
+| current_dept_emp | 300024 | 240124 | Coincide (ver nota) |
+
+Nota: en el origen ambas vistas existen; en destino `dept_emp_latest_date` agrupa uno por empleado (300024) y `current_dept_emp` filtra solo asignaciones vigentes (`to_date = '9999-01-01'`, 240124). La diferencia es semántica y esperada, no pérdida de datos.
+
+### CRC del origen (`test_employees_sha.sql`)
+
+| Tabla | Registros esperados | CRC | Resultado |
+|---|---:|---|---|
+| departments | 9 | `4b315afa…` | OK ok |
+| dept_emp | 331603 | `d95ab9fe…` | OK ok |
+| dept_manager | 24 | `9687a7d6…` | OK ok |
+| employees | 300024 | `4d4aa689…` | OK ok |
+| salaries | 2844047 | `b5a1785c…` | OK ok |
+| titles | 443308 | `d12d5f74…` | OK ok |
+
+### Verificaciones
+
+- **Huérfanos:** 0 en las seis relaciones, tanto en MariaDB como en PostgreSQL.
+- **Checksums MD5:** `departments` (`fa8cbd70…`) y `dept_manager` (`1e7bec35…`) idénticos en ambos motores; más CRC `ok` en las 6 tablas (`test_employees_sha.sql`).
+- **Restricciones:** se conservaron las 6 claves primarias y las 6 claves foráneas (más PK/FK del esquema `public` de la Act5 en el backup).
+- **Backup:** TOC de 62 entradas validado con `pg_restore -l` (esquemas, tablas, datos, 2 vistas, índices, FK).
+
+### Problema resuelto
+
+La primera vez que corrí la búsqueda de huérfanos en PostgreSQL, falló con `ERROR: could not resize shared memory segment / No space left on device`: el contenedor Docker tiene solo 64 MB en `/dev/shm`. Lo resolví desactivando el paralelismo y bajando `work_mem` solo para esa sesión (sin tocar los datos):
+
+```bash
+psql -h 127.0.0.1 -U marco -d pdb_employees -v ON_ERROR_STOP=1 \
+  -c "SET max_parallel_workers_per_gather = 0; SET work_mem = '4MB';" \
+  -c "SELECT ... FROM employees.dept_emp d LEFT JOIN employees.employees e ..." \
+  > huerfanos_postgresql.txt
+```
+
+La salida trae `SET / SET` y los 6 ceros. También se resolvieron `ERROR 1045` (clave root) y `ERROR 1046` (BD no seleccionada); detalle en el informe.
+
+## Backup final
+
+```bash
+pg_dump -h 127.0.0.1 -U marco -d pdb_employees -F c -b -v -f pdb_employees_backup.dump
+```
+
+| Característica | Valor |
+|---|---|
+| Archivo | `pdb_employees_backup.dump` |
+| Formato | CUSTOM gzip (`-F c -b`) |
+| Tamaño aproximado | 36 MB |
+| Contenido | Esquema `employees` (6 tablas + datos + 2 vistas) y esquema `public` (DDL Act5 + `gender_enum`), PK/FK |
+
+Para restaurarlo en una base nueva:
+
+```bash
+psql -h 127.0.0.1 -U marco -d pdb_marco -c "CREATE DATABASE pdb_employees_restore;"
+pg_restore -h 127.0.0.1 -U marco -d pdb_employees_restore -v pdb_employees_backup.dump
+pg_restore -l pdb_employees_backup.dump   # 62 entradas TOC
+```
+
 ## Todos los códigos ocupados en la migración
 
 ### 0. Entorno Docker Compose (`docker-compose.yml`)
