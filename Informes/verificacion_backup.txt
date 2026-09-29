@@ -1,0 +1,73 @@
+;
+; Archive created at 2026-09-26 17:25:45 -04
+;     dbname: pdb_employees
+;     TOC Entries: 62
+;     Compression: gzip
+;     Dump Version: 1.16-0
+;     Format: CUSTOM
+;     Integer: 4 bytes
+;     Offset: 8 bytes
+;     Dumped from database version: 18.6 (Debian 18.6-1.pgdg13+2)
+;     Dumped by pg_dump version: 18.6 (Debian 18.6-1.pgdg12+2)
+;
+;
+; Selected TOC Entries:
+;
+6; 2615 24585 SCHEMA - employees marco
+868; 1247 16695 TYPE public gender_enum marco
+228; 1259 24586 TABLE employees departments marco
+229; 1259 24591 TABLE employees dept_emp marco
+234; 1259 24674 VIEW employees current_dept_emp marco
+235; 1259 24678 VIEW employees dept_emp_latest_date marco
+230; 1259 24598 TABLE employees dept_manager marco
+231; 1259 24605 TABLE employees employees marco
+232; 1259 24616 TABLE employees salaries marco
+233; 1259 24623 TABLE employees titles marco
+220; 1259 16699 TABLE public departments marco
+221; 1259 16708 TABLE public dept_emp marco
+226; 1259 24577 VIEW public current_dept_emp marco
+227; 1259 24581 VIEW public dept_emp_latest_date marco
+222; 1259 16717 TABLE public dept_manager marco
+223; 1259 16726 TABLE public employees marco
+224; 1259 16737 TABLE public salaries marco
+225; 1259 16746 TABLE public titles marco
+3550; 0 24586 TABLE DATA employees departments marco
+3551; 0 24591 TABLE DATA employees dept_emp marco
+3552; 0 24598 TABLE DATA employees dept_manager marco
+3553; 0 24605 TABLE DATA employees employees marco
+3554; 0 24616 TABLE DATA employees salaries marco
+3555; 0 24623 TABLE DATA employees titles marco
+3544; 0 16699 TABLE DATA public departments marco
+3545; 0 16708 TABLE DATA public dept_emp marco
+3546; 0 16717 TABLE DATA public dept_manager marco
+3547; 0 16726 TABLE DATA public employees marco
+3548; 0 16737 TABLE DATA public salaries marco
+3549; 0 16746 TABLE DATA public titles marco
+3368; 2606 24630 CONSTRAINT employees departments idx_16877_primary marco
+3371; 2606 24632 CONSTRAINT employees dept_emp idx_16882_primary marco
+3374; 2606 24634 CONSTRAINT employees dept_manager idx_16889_primary marco
+3376; 2606 24636 CONSTRAINT employees employees idx_16896_primary marco
+3378; 2606 24638 CONSTRAINT employees salaries idx_16907_primary marco
+3380; 2606 24640 CONSTRAINT employees titles idx_16914_primary marco
+3353; 2606 16707 CONSTRAINT public departments departments_dept_name_key marco
+3355; 2606 16705 CONSTRAINT public departments departments_pkey marco
+3357; 2606 16716 CONSTRAINT public dept_emp dept_emp_pkey marco
+3359; 2606 16725 CONSTRAINT public dept_manager dept_manager_pkey marco
+3361; 2606 16736 CONSTRAINT public employees employees_pkey marco
+3363; 2606 16745 CONSTRAINT public salaries salaries_pkey marco
+3365; 2606 16753 CONSTRAINT public titles titles_pkey marco
+3366; 1259 24641 INDEX employees idx_16877_dept_name marco
+3369; 1259 24642 INDEX employees idx_16882_dept_no marco
+3372; 1259 24643 INDEX employees idx_16889_dept_no marco
+3387; 2606 24644 FK CONSTRAINT employees dept_emp dept_emp_ibfk_1 marco
+3388; 2606 24649 FK CONSTRAINT employees dept_emp dept_emp_ibfk_2 marco
+3389; 2606 24654 FK CONSTRAINT employees dept_manager dept_manager_ibfk_1 marco
+3390; 2606 24659 FK CONSTRAINT employees dept_manager dept_manager_ibfk_2 marco
+3391; 2606 24664 FK CONSTRAINT employees salaries salaries_ibfk_1 marco
+3392; 2606 24669 FK CONSTRAINT employees titles titles_ibfk_1 marco
+3381; 2606 16759 FK CONSTRAINT public dept_emp fk_dept_emp_dept marco
+3382; 2606 16754 FK CONSTRAINT public dept_emp fk_dept_emp_emp marco
+3383; 2606 16769 FK CONSTRAINT public dept_manager fk_dept_mgr_dept marco
+3384; 2606 16764 FK CONSTRAINT public dept_manager fk_dept_mgr_emp marco
+3385; 2606 16774 FK CONSTRAINT public salaries fk_salaries_emp marco
+3386; 2606 16779 FK CONSTRAINT public titles fk_titles_emp marco

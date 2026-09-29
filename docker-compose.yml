@@ -1,0 +1,66 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: postgresql
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: pdb_marco
+      POSTGRES_USER: marco
+      POSTGRES_PASSWORD: 123123
+      TZ: 'America/La_Paz'
+      PGTZ: 'America/La_Paz'
+    command: ["postgres", "-c", "timezone=America/La_Paz"]
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marco -d pdb_marco"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mariadb:
+    image: mariadb:11.8.9-ubi9
+    container_name: mariadb
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: 123456
+      MARIADB_DATABASE: mdb_marco
+      MARIADB_USER: marco
+      MARIADB_PASSWORD: 123123
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  adminer:
+    image: adminer
+    container_name: adminer
+    restart: always
+    ports:
+      - "8081:8080"
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin4
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@upds.com
+      PGADMIN_DEFAULT_PASSWORD: 123123
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+
+volumes:
+  mariadb_data:
+    driver: local
+  postgres_data:
+    driver: local
+  pgadmin-data:
+    driver: local

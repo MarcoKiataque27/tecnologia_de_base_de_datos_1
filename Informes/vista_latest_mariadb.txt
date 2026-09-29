@@ -1,0 +1,2 @@
+View	Create View	character_set_client	collation_connection
+dept_emp_latest_date	CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `dept_emp_latest_date` AS select `dept_emp`.`emp_no` AS `emp_no`,max(`dept_emp`.`from_date`) AS `from_date`,max(`dept_emp`.`to_date`) AS `to_date` from `dept_emp` group by `dept_emp`.`emp_no`	utf8mb3	utf8mb3_uca1400_ai_ci

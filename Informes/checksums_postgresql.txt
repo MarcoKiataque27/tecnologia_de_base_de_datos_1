@@ -1,0 +1,6 @@
+    tabla     |             checksum             
+--------------+----------------------------------
+ departments  | fa8cbd703ad11e1f06b31874f4ae55b5
+ dept_manager | 1e7bec3546440ceca470f44da37de99f
+(2 filas)
+

@@ -1,0 +1,16 @@
+# Local y temporales (no se suben al repo)
+tecBD1/
+presentacion de proyecto final/
+*.html
+pdf-style.css
+reference.docx
+*_raw.docx
+evidencias_finales.tar.gz
+temp_employees.dump
+
+# Duplicados de trabajo en raiz (los originales viven en Informes/ y actividad-5/)
+/Proyecto_Final_Informe.md
+/Proyecto_Final_Informe.pdf
+/Proyecto_Final_Informe.docx
+/employees_diagrama.png
+/employees_postgres.sql
